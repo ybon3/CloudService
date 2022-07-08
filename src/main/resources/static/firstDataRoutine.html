@@ -1,0 +1,280 @@
+<!DOCTYPE HTML>
+<html>
+<head> 
+<title>日常維運任務－FirstData 密碼更新</title> 
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+	$('#loadStop').hide();
+	$('#loadRecover').hide();
+	loadApiauthStatus();
+});
+
+function xyzFetch(isLoading) {
+	if (isLoading) {
+		$('#row_info_xyz').hide();
+		$('#row_loading_xyz').show();
+	}
+	else {
+		$('#row_info_xyz').show();
+		$('#row_loading_xyz').hide();
+	}
+}
+
+function hmFetch(isLoading) {
+	if (isLoading) {
+		$('#row_info_hm').hide();
+		$('#row_loading_hm').show();
+	}
+	else {
+		$('#row_info_hm').show();
+		$('#row_loading_hm').hide();
+	}
+}
+
+function loadStop(isLoading) {
+	if (isLoading) {
+		$('#loadStop').show();
+		$('#btnStop').hide();
+	}
+	else {
+		$('#loadStop').hide();
+		$('#btnStop').show();
+	}
+}
+
+function loadRecover(isLoading) {
+	if (isLoading) {
+		$('#loadRecover').show();
+		$('#btnRecover').hide();
+	}
+	else {
+		$('#loadRecover').hide();
+		$('#btnRecover').show();
+	}
+}
+
+function loadApiauthStatus(){
+	xyzFetch(true);
+	hmFetch(true);
+	
+	fetch('/routine/apiauth/status')
+	  .then(resp => resp.json())
+	  .then(res => {
+		  //console.log(JSON.stringify(res.XYZ));
+		  if (res.XYZ) {
+			$("#row_info_xyz .auth_acc").text(res.XYZ.account);
+			$("#row_info_xyz .auth_key").text(res.XYZ.keyValue);
+			$("#row_info_xyz .auth_name").text(res.XYZ.name);
+			$("#row_info_xyz .auth_sche").text(res.XYZ.scheduleEnable);
+			xyzFetch(false);
+		  }
+		  else {
+			alert('XYZ DB query no response.');
+		  }
+
+		  //console.log(JSON.stringify(res.HIMIRROR));
+		  if (res.HIMIRROR) {
+			  $("#row_info_hm .auth_acc").text(res.HIMIRROR.account);
+			  $("#row_info_hm .auth_key").text(res.HIMIRROR.keyValue);
+			  $("#row_info_hm .auth_name").text(res.HIMIRROR.name);
+			  $("#row_info_hm .auth_sche").text(res.HIMIRROR.scheduleEnable);
+			  hmFetch(false);
+		  }
+		  else {
+			alert('HIMIRROR DB query no response.');
+		  }
+	  })
+	  .catch(() => {
+		  alert('oh no!');
+	  });
+};
+
+function stopSchedule() {
+	loadStop(true);
+	
+	fetch('/routine/apiauth/stop')
+	  .then(resp => resp.text())
+	  .then(res => {
+		  console.log(res);
+		  loadApiauthStatus();
+		  loadStop(false);
+	  })
+	  .catch(() => {
+		  alert('oh no!');
+		  loadStop(false);
+	  });
+}
+
+function recoverSchedule() {
+	loadRecover(true);
+	
+	fetch('/routine/apiauth/recover')
+	  .then(resp => resp.text())
+	  .then(res => {
+		  console.log(res);
+		  loadApiauthStatus();
+		  loadRecover(false);
+	  })
+	  .catch(() => {
+		  alert('oh no!');
+		  loadRecover(false);
+	  });
+}
+
+function update() {
+	var myModal = new bootstrap.Modal(document.getElementById('loadingModal'))
+	myModal.show();
+	fetch('/routine/apiauth/update', {
+		method: 'POST',
+		body: new FormData(document.getElementById('update-form'))
+	  })
+	  .then(resp => resp.json())
+	  .then(res => {
+		  if (res.isAccomplished) {
+			  alert("更新完成！");
+		  }
+		  else {
+			  alert("更新失敗, 請參考 console 資訊");
+			  console.log("cipherOldPwd: " + res.cipherOldPwd);
+			  console.log("cipherNewPwd: " + res.cipherNewPwd);
+			  console.log("responseData: " + JSON.stringify(res));
+		  }
+		  myModal.hide();
+	  })
+	  .catch(() => {
+		  alert('oh no!');
+		  myModal.hide();
+	  });
+	return false;
+}
+</script>
+<style>
+
+</style>
+</head>
+
+<body class="container-fluid p-3 bg-dark text-white">
+<div>
+  <h2>FirstData 密碼更新作業（兩個月一次）</h2>
+  <p>
+    <span class="text-info">操作程序請依序</span> &rarr;
+    <span class="text-danger">停止排程</span> &rarr;
+    <span class="text-warning">更新密碼</span> &rarr;
+    <span class="text-success">恢復排程</span>
+  </p>
+  <table class="table table-dark">
+    <thead>
+      <tr>
+        <th>BU</th>
+        <th>account</th>
+        <th>key_value</th>
+        <th>name</th>
+        <th>schedule_enable</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr id="row_loading_xyz">
+        <td>XYZ</td>
+        <td><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></td>
+        <td><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></td>
+        <td><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></td>
+        <td><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></td>
+      </tr>
+      <tr id="row_info_xyz">
+        <td>XYZ</td>
+        <td class="auth_acc"></td>
+        <td class="auth_key"></td>
+        <td class="auth_name"></td>
+        <td class="auth_sche"></td>
+      </tr>
+      <tr id="row_loading_hm">
+        <td>Himirror</td>
+        <td><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></td>
+        <td><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></td>
+        <td><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></td>
+        <td><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></td>
+      </tr>
+      <tr id="row_info_hm">
+        <td>HIMIRROR</td>
+        <td class="auth_acc"></td>
+        <td class="auth_key"></td>
+        <td class="auth_name"></td>
+        <td class="auth_sche"></td>
+      </tr>
+    </tbody>
+  </table>
+
+	<button id="btnStop" type="button" class="m-2 btn btn-outline-danger" onclick="stopSchedule()">停止排程</button>
+	<button id="loadStop" type="button" class="m-2 btn btn-outline-danger" disabled>
+		<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Loading...
+	</button>
+	<button id="btnRecover" type="button" class="m-2 btn btn-outline-success" onclick="recoverSchedule()">恢復排程</button>
+	<button id="loadRecover" type="button" class="m-2 btn btn-outline-success" disabled>
+		<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>Loading...
+	</button>
+	
+	<hr size="1"/>
+	<form id="update-form" action="#" onsubmit="return update()">
+	  <div class="mb-3 mt-3">
+	    <label for="old_pwd" class="form-label">Old Password:</label>
+	    <input type="password" class="form-control bg-secondary" id="old_pwd" placeholder="Enter old password" name="old_pwd">
+	  </div>
+	  <div class="mb-3">
+	    <label for="new_pwd" class="form-label">New Password:</label>
+	    <input type="password" class="form-control bg-secondary" id="new_pwd" placeholder="Enter new password" name="new_pwd">
+	  </div>
+	  <button type="submit" class="btn btn-danger">更新 key</button>
+	  <span class="h5 text-info">＊＊＊執行前必須先停止排程＊＊＊</span>
+	</form>
+	
+	<hr size="1"/>
+	<h4>歷史交接說明文件</h4>
+	
+	<pre class="text-warning">
+
+＊＊ 密碼有效期 2 個月（含測試站） ＊＊
+
+SELECT * FROM apiauth 
+
+1. 先到xyz, himirror資料庫修改apiauth的資料，將schedule_enable設定為"N"
+
+UPDATE apiauth SET schedule_enable = 'N' WHERE id = 1
+
+2. 確定xyz, himirror資料庫全都改好
+
+3. 到FirstData後台修改密碼
+
+4. 重登並確認新密碼可登入
+
+5. 修改 Word 檔
+
+6. 將新的密碼 encrypt 產出加密字串，並確認解密後的字串是否和密碼一致
+
+7. 將加密字串更新到apiauth內，並把schedule_enable設定為"Y"
+
+UPDATE apiauth SET key_value = '${encrypted_key}' WHERE id = 1
+
+
+*** 失誤就找 Geo 
+	</pre>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-labelledby="loadingModalLabel" data-bs-keyboard="false" aria-hidden="true">
+  <div class="modal-dialog modal-fullscreen">
+    <div class="modal-content bg-dark opacity-25">
+      <div class="modal-body mx-auto mt-5">
+        <div class="spinner-border"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
